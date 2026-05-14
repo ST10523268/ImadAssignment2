@@ -1,0 +1,185 @@
+Main Screen Code 
+package com.example.flashcardgame
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // This connects the code to activity_main.xml
+        setContentView(R.layout.activity_main)
+
+        // Link the button from XML to Kotlin using its ID
+        val startButton = findViewById<Button>(R.id.startButton)
+
+        //  Set the logic for when the button is clicked
+        startButton.setOnClickListener {
+            // Intent(Context, Target Class)
+            val intent = Intent(this, QuestionScreen::class.java)
+
+            // Start the new activity
+            startActivity(intent)
+        }
+    }
+}
+
+
+
+
+
+Question Screen Code
+package com.example.flashcardgame
+
+import android.content.Intent
+import android.graphics.Color
+import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+
+// Data model for the flashcards
+data class Flashcard(
+    val statement: String,
+    val isHack: Boolean,
+    val explanation: String
+)
+
+class QuestionScreen : AppCompatActivity() {
+
+    // Set of questions
+    private val flashcards = listOf(
+        Flashcard("Use a dry pool noodle as a door stopper to protect fingers.", true, "Correct! A sliced pool noodle is a soft, effective safety hack."),
+        Flashcard("Drinking orange juice after brushing your teeth cures cavities.", false, "Myth! It just tastes terrible and the acid can hurt your enamel."),
+        Flashcard("Place a rubber band around an open paint can to wipe your brush.", true, "Correct! It keeps the edges clean and saves paint."),
+        Flashcard("Adding salt to water makes it boil significantly faster.", false, "Myth! You'd need a massive amount of salt to see any real difference."),
+        Flashcard("Use a clothespin to hold a nail while hammering to save your fingers.", true, "Correct! It keeps your hand at a safe distance from the hammer."),
+        Flashcard("Eating apple seeds is a quick way to get your daily vitamins.", false, "Myth! Apple seeds contain small amounts of cyanide and are not for snacking.")
+    )
+
+    private var currentIndex = 0
+    private var score = 0
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_question_screen)
+
+        val txtQuestion = findViewById<TextView>(R.id.txtQuestion)
+        val txtFeedback = findViewById<TextView>(R.id.txtFeedback)
+        val btnHack = findViewById<Button>(R.id.btnHack)
+        val btnMyth = findViewById<Button>(R.id.btnMyth)
+        val btnNext = findViewById<Button>(R.id.btnNext)
+
+        // Show the first question
+        updateQuestion(txtQuestion, txtFeedback, btnNext)
+
+        // User selects an answer
+        btnHack.setOnClickListener {
+            checkAnswer(true, txtFeedback, btnNext, btnHack, btnMyth)
+        }
+
+        btnMyth.setOnClickListener {
+            checkAnswer(false, txtFeedback, btnNext, btnHack, btnMyth)
+        }
+
+        // Move to the next question
+        btnNext.setOnClickListener {
+            currentIndex++
+            if (currentIndex < flashcards.size) {
+                // Reset buttons for the next question
+                btnHack.isEnabled = true
+                btnMyth.isEnabled = true
+                updateQuestion(txtQuestion, txtFeedback, btnNext)
+            } else {
+                // Requirement 2.3.1: Final question reached, go to Score Screen
+                val intent = Intent(this, ScoreScreen::class.java)
+                intent.putExtra("USER_SCORE", score)
+                intent.putExtra("MAX_SCORE", flashcards.size)
+                startActivity(intent)
+                finish()
+            }
+        }
+    }
+
+    private fun updateQuestion(qText: TextView, fText: TextView, nBtn: Button) {
+        qText.text = flashcards[currentIndex].statement
+        fText.visibility = View.INVISIBLE
+        nBtn.visibility = View.INVISIBLE
+    }
+
+    private fun checkAnswer(userChoice: Boolean, fText: TextView, nBtn: Button, b1: Button, b2: Button) {
+        val currentCard = flashcards[currentIndex]
+
+        //Update score counter
+        if (userChoice == currentCard.isHack) {
+            score++
+            fText.text = currentCard.explanation
+            fText.setTextColor(Color.parseColor("#388E3C")) // Green
+        } else {
+            fText.text = currentCard.explanation
+            fText.setTextColor(Color.RED)
+        }
+
+        // Disable buttons so they can't click twice
+        b1.isEnabled = false
+        b2.isEnabled = false
+
+        fText.visibility = View.VISIBLE
+        nBtn.visibility = View.VISIBLE
+    }
+}
+
+
+
+
+
+Score Screen Code
+package com.example.flashcardgame
+
+import android.os.Bundle
+import android.widget.Button
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+
+class ScoreScreen : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_score_screen)
+
+        // Find views by their IDs
+        val txtFinalScore = findViewById<TextView>(R.id.txtFinalScore)
+        val txtPersonalFeedback = findViewById<TextView>(R.id.txtPersonalFeedback)
+        val btnReview = findViewById<Button>(R.id.btnReview)
+
+        // Retrieve the score from the intent
+        val userScore = intent.getIntExtra("USER_SCORE", 0)
+        val maxScore = intent.getIntExtra("MAX_SCORE", 5)
+
+        // Display the score
+        txtFinalScore.text = "Score: $userScore / $maxScore"
+
+        // Personalized feedback logic based on performance
+        when {
+            userScore == maxScore -> {
+                txtPersonalFeedback.text = "Master Hacker! Perfect score!"
+            }
+            userScore >= (maxScore / 2) -> {
+                txtPersonalFeedback.text = "Great job! You know your hacks."
+            }
+            else -> {
+                txtPersonalFeedback.text = "Stay Safe Online! Keep practicing."
+            }
+        }
+
+        // Review Button functionality
+        btnReview.setOnClickListener {
+            Toast.makeText(this, "The review feature is under maintenance!", Toast.LENGTH_LONG).show()
+        }
+    }
+}
